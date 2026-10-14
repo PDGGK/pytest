@@ -406,7 +406,7 @@ def pytest_make_collect_report(collector: Collector) -> CollectReport:
         return list(collector.collect())
 
     call = CallInfo.from_call(
-        collect, "collect", reraise=(KeyboardInterrupt, SystemExit)
+        collect, "collect", reraise=(Exit, KeyboardInterrupt, SystemExit)
     )
     longrepr: tuple[str, int, str] | str | TerminalRepr | None = None
     if not call.excinfo:

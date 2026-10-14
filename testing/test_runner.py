@@ -714,6 +714,27 @@ def test_pytest_exit_returncode(pytester: Pytester) -> None:
     assert result.ret == 98
 
 
+@pytest.mark.parametrize("continue_on_collection_errors", [False, True])
+def test_pytest_exit_during_collection(
+    pytester: Pytester, continue_on_collection_errors: bool
+) -> None:
+    """pytest.exit() while collecting a module exits pytest with the given
+    return code, instead of being reported as a collection error."""
+    pytester.makepyfile(
+        test_a="""
+        import pytest
+        pytest.exit("exit while collecting", 99)
+        """,
+        test_b="def test_b(): pass",
+    )
+    args = ["--continue-on-collection-errors"] if continue_on_collection_errors else []
+    result = pytester.runpytest(*args)
+    result.stdout.fnmatch_lines(["*! *Exit: exit while collecting !*"])
+    result.stdout.no_fnmatch_line("*ERROR collecting*")
+    result.stdout.no_fnmatch_line("*passed*")
+    assert result.ret == 99
+
+
 def test_pytest_fail_notrace_runtest(pytester: Pytester) -> None:
     """Test pytest.fail(..., pytrace=False) does not show tracebacks during test run."""
     pytester.makepyfile(
