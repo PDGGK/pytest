@@ -2513,12 +2513,20 @@ def _showfixtures_main(config: Config, session: Session) -> None:
 
     fm = session._fixturemanager
     available = []
+    seen: set[tuple[str, str]] = set()
     for fixturedef in fm._get_all_fixture_defs():
+        prettypath = _pretty_fixture_path(invocation_dir, fixturedef.func)
+        # The same fixture function is registered once for every node which
+        # sees it, e.g. a fixture method inherited by several test classes;
+        # show it only once (#1651).
+        if (fixturedef.argname, prettypath) in seen:
+            continue
+        seen.add((fixturedef.argname, prettypath))
         available.append(
             (
                 len(fixturedef.baseid),
                 fixturedef.func.__module__,
-                _pretty_fixture_path(invocation_dir, fixturedef.func),
+                prettypath,
                 fixturedef.argname,
                 fixturedef,
             )

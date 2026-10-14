@@ -3935,6 +3935,45 @@ class TestShowFixtures:
         )
         result.stdout.no_fnmatch_line("*arg0*")
 
+    def test_show_fixtures_inherited_by_several_classes(
+        self, pytester: Pytester
+    ) -> None:
+        """A fixture function registered for several nodes, here a fixture
+        method inherited by several test classes, is listed once and does
+        not crash the sorting of the fixtures (#1651)."""
+        p = pytester.makepyfile(
+            '''
+            import pytest
+
+            class Base:
+                @pytest.fixture
+                def client(self):
+                    """An API client."""
+
+                def test_ping(self, client):
+                    pass
+
+            class TestV1(Base):
+                pass
+
+            class TestV2(Base):
+                pass
+
+            class TestVersion3(Base):
+                pass
+        '''
+        )
+        result = pytester.runpytest("--fixtures", p)
+        result.stdout.fnmatch_lines(
+            [
+                "*fixtures defined from test_show_fixtures_inherited_by_several_classes*",
+                "client -- test_show_fixtures_inherited_by_several_classes.py:4",
+                "    An API client.",
+            ]
+        )
+        assert result.stdout.str().count("client -- ") == 1
+        assert "INTERNALERROR" not in result.stdout.str() + result.stderr.str()
+
     @pytest.mark.parametrize("testmod", [True, False])
     def test_show_fixtures_conftest(self, pytester: Pytester, testmod) -> None:
         pytester.makeconftest(
