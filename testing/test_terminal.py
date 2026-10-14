@@ -1757,6 +1757,36 @@ class TestGenericReporting:
         result = pytester.runpytest("--tb=line")
         result.stdout.fnmatch_lines(["*- Captured stdout call -*", output_to_capture])
 
+    def test_tb_line_one_line_per_failure(self, pytester: Pytester) -> None:
+        """--tb=line shows only the crash line of each failure, followed by
+        its captured output (if any)."""
+        p = pytester.makepyfile(
+            """
+            def helper(x):
+                assert x == 0, "x must be zero"
+
+            def test_fail():
+                print("captured line")
+                assert False
+
+            def test_nested():
+                helper(3)
+            """
+        )
+        result = pytester.runpytest("--tb=line")
+        bn = p.name
+        result.stdout.fnmatch_lines(
+            [
+                "*= FAILURES =*",
+                f"*{bn}:6: assert False",
+                "*- Captured stdout call -*",
+                "captured line",
+                f"*{bn}:2: AssertionError: x must be zero",
+                "*= short test summary info =*",
+            ],
+            consecutive=True,
+        )
+
     def test_tb_crashline(self, pytester: Pytester, option) -> None:
         p = pytester.makepyfile(
             """

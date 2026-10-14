@@ -1241,9 +1241,8 @@ class TerminalReporter:
                 self.write_sep("=", sep_title)
                 if style == "line":
                     for rep in reports:
-                        line = self._getcrashline(rep)
-                        self._outrep_summary(rep)
-                        self.write_line(line)
+                        self.write_line(self._getcrashline(rep))
+                        self._outrep_sections(rep)
                 else:
                     for rep in reports:
                         msg = self._getfailureheadline(rep)
@@ -1268,6 +1267,9 @@ class TerminalReporter:
 
     def _outrep_summary(self, rep: BaseReport) -> None:
         rep.toterminal(self._tw)
+        self._outrep_sections(rep)
+
+    def _outrep_sections(self, rep: BaseReport) -> None:
         showcapture = self.config.option.showcapture
         if showcapture == "no":
             return
