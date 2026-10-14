@@ -1643,10 +1643,14 @@ class Config:
         # Imported lazily to improve start-up time.
         from packaging.requirements import InvalidRequirement
         from packaging.requirements import Requirement
+        from packaging.utils import canonicalize_name
         from packaging.version import Version
 
         plugin_info = self.pluginmanager.list_plugin_distinfo()
-        plugin_dist_info = {dist.project_name: dist.version for _, dist in plugin_info}
+        plugin_dist_info = {
+            canonicalize_name(dist.project_name): dist.version
+            for _, dist in plugin_info
+        }
 
         missing_plugins = []
         for required_plugin in required_plugins:
@@ -1656,10 +1660,11 @@ class Config:
                 missing_plugins.append(required_plugin)
                 continue
 
-            if req.name not in plugin_dist_info:
+            name = canonicalize_name(req.name)
+            if name not in plugin_dist_info:
                 missing_plugins.append(required_plugin)
             elif not req.specifier.contains(
-                Version(plugin_dist_info[req.name]), prereleases=True
+                Version(plugin_dist_info[name]), prereleases=True
             ):
                 missing_plugins.append(required_plugin)
 

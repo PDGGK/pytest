@@ -683,6 +683,60 @@ class TestParseIni:
         else:
             pytester.parseconfig()
 
+    @pytest.mark.parametrize(
+        "required_plugin",
+        [
+            "my_plugin",
+            "my-plugin",
+            "My.Plugin",
+            "MY-PLUGIN>=1.0",
+        ],
+    )
+    def test_required_plugins_name_is_normalized(
+        self, pytester: Pytester, monkeypatch: MonkeyPatch, required_plugin: str
+    ) -> None:
+        """Distribution names in 'required_plugins' are matched like pip matches
+        them: case-insensitively and with '-', '_' and '.' being equivalent."""
+
+        @dataclasses.dataclass
+        class DummyEntryPoint:
+            name: str
+            module: str
+            group: str = "pytest11"
+
+            def load(self):
+                return importlib.import_module(self.module)
+
+        @dataclasses.dataclass
+        class DummyDist:
+            entry_points: object
+            files: object = ()
+            version: str = "1.5"
+
+            @property
+            def metadata(self):
+                return {"name": "my_plugin"}
+
+        def my_dists():
+            return [DummyDist([DummyEntryPoint("my_plugin", "my_plugin_module")])]
+
+        pytester.makepyfile(my_plugin_module="# my plugin module")
+        pytester.syspathinsert()
+
+        monkeypatch.setattr(importlib.metadata, "distributions", my_dists)
+        monkeypatch.delenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", raising=False)
+
+        pytester.makeini(f"[pytest]\nrequired_plugins = {required_plugin}\n")
+        pytester.parseconfig()
+
+        pytester.makeini(
+            f"[pytest]\nrequired_plugins = {required_plugin} my-plugin==2.0\n"
+        )
+        with pytest.raises(
+            pytest.UsageError, match=r"^Missing required plugins: my-plugin==2\.0$"
+        ):
+            pytester.parseconfig()
+
     def test_early_config_cmdline(
         self, pytester: Pytester, monkeypatch: MonkeyPatch
     ) -> None:

@@ -2412,6 +2412,8 @@ passed multiple times. The expected format is ``name=value``. For example::
    A space separated list of plugins that must be present for pytest to run.
    Plugins can be listed with or without version specifiers directly following
    their name. Whitespace between different version specifiers is not allowed.
+   Names are compared like ``pip`` compares them, so case does not matter and
+   ``-``, ``_`` and ``.`` are treated as equivalent.
    If any one of the plugins is not found, emit an error.
 
    .. tab:: toml
